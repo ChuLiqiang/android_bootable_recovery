@@ -45,17 +45,17 @@ static int gShowBackButton = 0;
 //#define TOUCH_DEBUG
 #undef TOUCH_DEBUG
 
-#define MAX_COLS 96
+#define MAX_COLS 40
 #define MAX_ROWS 32
 
-#define MENU_MAX_COLS 64
+#define MENU_MAX_COLS 96
 #define MENU_MAX_ROWS 250
 
 #define MIN_LOG_ROWS 3
 
 #define CHAR_WIDTH BOARD_RECOVERY_CHAR_WIDTH
 #define CHAR_HEIGHT BOARD_RECOVERY_CHAR_HEIGHT
-#define EXT_HEIGHT CHAR_HEIGHT*2
+#define EXT_HEIGHT CHAR_HEIGHT
 
 #define UI_WAIT_KEY_TIMEOUT_SEC    3600
 #define UI_KEY_REPEAT_INTERVAL 80
@@ -262,7 +262,6 @@ static void draw_virtualkeys_locked() {
 #define LEFT_ALIGN 0
 #define CENTER_ALIGN 1
 #define RIGHT_ALIGN 2
-#define LEFT_ALIGN_MENU 3
 
 static void draw_text_line(int row, const char* t, int align) {
     int col = 0;
@@ -271,7 +270,6 @@ static void draw_text_line(int row, const char* t, int align) {
         switch(align)
         {
             case LEFT_ALIGN:
-            case LEFT_ALIGN_MENU:
                 col = 1;
                 break;
             case CENTER_ALIGN:
@@ -281,10 +279,7 @@ static void draw_text_line(int row, const char* t, int align) {
                 col = gr_fb_width() - length - 1;
                 break;
         }
-        if (align == LEFT_ALIGN_MENU)
-            gr_text(col, (row+1)*EXT_HEIGHT-1, t);
-        else
-            gr_text(col, (row+1)*CHAR_HEIGHT-1, t);
+        gr_text(col, (row+1)*CHAR_HEIGHT-1, t);
     }
 }
 
@@ -343,8 +338,8 @@ static void draw_screen_locked(void)
 
             gr_color(MENU_TEXT_COLOR);
 			draw_text_line(1, batt_text, LEFT_ALIGN);
-            gr_fill(0, (menu_top + menu_sel - menu_show_start) * EXT_HEIGHT+EXT_HEIGHT/4,
-                    gr_fb_width(), (menu_top + menu_sel - menu_show_start + 1)*EXT_HEIGHT+EXT_HEIGHT/4+1);
+            gr_fill(0, (menu_top + menu_sel - menu_show_start) * EXT_HEIGHT/*+EXT_HEIGHT/4*/,
+                    gr_fb_width(), (menu_top + menu_sel - menu_show_start + 1)*EXT_HEIGHT/*+EXT_HEIGHT/4*/+1);
 
             gr_color(HEADER_TEXT_COLOR);
             for (i = 0; i < menu_top; ++i) {
@@ -361,21 +356,23 @@ static void draw_screen_locked(void)
             for (i = menu_show_start + menu_top; i < (menu_show_start + menu_top + j); ++i) {
                 if (i == menu_top + menu_sel) {
                     gr_color(255, 255, 255, 255);
-                    draw_text_line(i - menu_show_start , menu[i], LEFT_ALIGN_MENU);
+                    draw_text_line(i - menu_show_start , menu[i], LEFT_ALIGN);
                     gr_color(menuTextColor[0], menuTextColor[1], menuTextColor[2], menuTextColor[3]);
                 } else {
                     gr_color(menuTextColor[0], menuTextColor[1], menuTextColor[2], menuTextColor[3]);
-                    draw_text_line(i - menu_show_start, menu[i], LEFT_ALIGN_MENU);
+                    draw_text_line(i - menu_show_start, menu[i], LEFT_ALIGN);
                 }
                 row++;
                 if (row >= max_menu_rows)
                     break;
             }
 
+         //   gr_fill(0, row*EXT_HEIGHT+EXT_HEIGHT/2-1,
+         //           gr_fb_width(), row*EXT_HEIGHT+EXT_HEIGHT/2+1);
             if (menu_items <= max_menu_rows)
                 offset = 0;
-            gr_fill(0, (row - offset) * EXT_HEIGHT + EXT_HEIGHT / 2 - 1,
-                    gr_fb_width(), (row - offset) * EXT_HEIGHT + EXT_HEIGHT / 2 + 1);
+            gr_fill(0, (row - offset) * CHAR_HEIGHT + CHAR_HEIGHT / 2 - 1,
+                    gr_fb_width(), (row - offset) * CHAR_HEIGHT + CHAR_HEIGHT / 2 + 1);
         }
 
         gr_color(NORMAL_TEXT_COLOR);
