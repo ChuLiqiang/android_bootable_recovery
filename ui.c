@@ -45,17 +45,17 @@ static int gShowBackButton = 0;
 //#define TOUCH_DEBUG
 #undef TOUCH_DEBUG
 
-#define MAX_COLS 40
+#define MAX_COLS 96
 #define MAX_ROWS 32
 
-#define MENU_MAX_COLS 96
+#define MENU_MAX_COLS 64
 #define MENU_MAX_ROWS 250
 
 #define MIN_LOG_ROWS 3
 
 #define CHAR_WIDTH BOARD_RECOVERY_CHAR_WIDTH
 #define CHAR_HEIGHT BOARD_RECOVERY_CHAR_HEIGHT
-#define EXT_HEIGHT CHAR_HEIGHT
+#define EXT_HEIGHT CHAR_HEIGHT*2
 
 #define UI_WAIT_KEY_TIMEOUT_SEC    3600
 #define UI_KEY_REPEAT_INTERVAL 80
@@ -262,15 +262,17 @@ static void draw_virtualkeys_locked() {
 #define LEFT_ALIGN 0
 #define CENTER_ALIGN 1
 #define RIGHT_ALIGN 2
+#define LEFT_ALIGN_MENU 3
 
 static void draw_text_line(int row, const char* t, int align) {
     int col = 0;
     if (t[0] != '\0') {
 //        int length = strnlen(t, MENU_MAX_COLS) * CHAR_WIDTH * 2;
-    int length = strnlen(t, MENU_MAX_COLS) * 7.6;
-		switch(align)
+        int length = strnlen(t, MENU_MAX_COLS) * 7.6;
+        switch(align)
         {
-            case LEFT_ALIGN:
+             case LEFT_ALIGN:
+             case LEFT_ALIGN_MENU:
                 col = 1;
                 break;
             case CENTER_ALIGN:
@@ -280,7 +282,10 @@ static void draw_text_line(int row, const char* t, int align) {
                 col = gr_fb_width() - length - 1;
                 break;
         }
-        gr_text(col, (row+1)*CHAR_HEIGHT-1, t);
+        if (align == LEFT_ALIGN_MENU)
+            gr_text(col, (row+1)*EXT_HEIGHT-1, t);
+        else
+            gr_text(col, (row+1)*CHAR_HEIGHT-1, t);
     }
 }
 
@@ -317,6 +322,7 @@ static void draw_screen_locked(void)
         int offset = 0;     //offset of separating bar under menus
         int row = 0;            // current row that we are drawing on
         if (show_menu) {
+#ifndef BOARD_TOUCH_RECOVERY
             gr_color(menuTextColor[0], menuTextColor[1], menuTextColor[2], menuTextColor[3]);
 
             int batt_level = 0;
@@ -338,9 +344,9 @@ static void draw_screen_locked(void)
             }
 
             gr_color(MENU_TEXT_COLOR);
-			draw_text_line(0, batt_text, RIGHT_ALIGN);
-            gr_fill(0, (menu_top + menu_sel - menu_show_start) * EXT_HEIGHT/*+EXT_HEIGHT/4*/,
-                    gr_fb_width(), (menu_top + menu_sel - menu_show_start + 1)*EXT_HEIGHT/*+EXT_HEIGHT/4*/+1);
+            draw_text_line(0, batt_text, RIGHT_ALIGN);
+            gr_fill(0, (menu_top + menu_sel - menu_show_start) * EXT_HEIGHT+EXT_HEIGHT/4,
+                        gr_fb_width(), (menu_top + menu_sel - menu_show_start + 1)*EXT_HEIGHT+EXT_HEIGHT/4+1);
 
             gr_color(HEADER_TEXT_COLOR);
             for (i = 0; i < menu_top; ++i) {
@@ -357,23 +363,25 @@ static void draw_screen_locked(void)
             for (i = menu_show_start + menu_top; i < (menu_show_start + menu_top + j); ++i) {
                 if (i == menu_top + menu_sel) {
                     gr_color(255, 255, 255, 255);
-                    draw_text_line(i - menu_show_start , menu[i], LEFT_ALIGN);
+                    draw_text_line(i - menu_show_start , menu[i], LEFT_ALIGN_MENU);
                     gr_color(menuTextColor[0], menuTextColor[1], menuTextColor[2], menuTextColor[3]);
                 } else {
                     gr_color(menuTextColor[0], menuTextColor[1], menuTextColor[2], menuTextColor[3]);
-                    draw_text_line(i - menu_show_start, menu[i], LEFT_ALIGN);
+                    draw_text_line(i - menu_show_start, menu[i], LEFT_ALIGN_MENU);
                 }
                 row++;
                 if (row >= max_menu_rows)
                     break;
             }
 
-         //   gr_fill(0, row*EXT_HEIGHT+EXT_HEIGHT/2-1,
-         //           gr_fb_width(), row*EXT_HEIGHT+EXT_HEIGHT/2+1);
+            gr_fill(0, row*EXT_HEIGHT+EXT_HEIGHT/2-1,
+                    gr_fb_width(), row*EXT_HEIGHT+EXT_HEIGHT/2+1);
+#else
             if (menu_items <= max_menu_rows)
                 offset = 0;
             gr_fill(0, (row - offset) * CHAR_HEIGHT + CHAR_HEIGHT / 2 - 1,
                     gr_fb_width(), (row - offset) * CHAR_HEIGHT + CHAR_HEIGHT / 2 + 1);
+#endif
         }
 
         gr_color(NORMAL_TEXT_COLOR);
@@ -483,8 +491,8 @@ static int diff_y = 0;          //差异y坐标
 static void reset_gestures() {
     diff_x = 0;
     diff_y = 0;
-    old_x = 0;
-    old_y = 0;
+    //old_x = 0;
+    //old_y = 0;
     touch_x = 0;
     touch_y = 0;
 }
@@ -539,24 +547,10 @@ static int input_callback(int fd, short revents, void *data)
         rel_sum = 0;
     }
 #ifdef USE_VIRTUAL_KEY
-//#ifdef COMMON_TOUCH_DRIVER
    int touch_type = EV_ABS;
-   int touch_code = ABS_MT_TOUCH_MAJOR;     //48
+   int touch_code = 50;//  int touch_code = ABS_MT_TOUCH_MAJOR;     //48
    int touch_pos_x = ABS_MT_POSITION_X;     //53
    int touch_pos_y = ABS_MT_POSITION_Y;     //54
-   int lv = 0;	//left value
-//#endif
-
-#ifdef MAKO
-    touch_code = 57;
-    lv = -1;
-    if (ev.type == touch_type) {
-        if (ev.code == touch_pos_x)
-            ev.value = ev.value * 768 / 1536;
-        else if (ev.code == touch_pos_y)
-            ev.value = ev.value * 1280 / 2560;
-    }
-#endif
 
 #ifdef TOUCH_DEBUG
     if (ev.type == touch_type) {
@@ -566,24 +560,14 @@ static int input_callback(int fd, short revents, void *data)
                 touch_type, touch_code, touch_pos_x, touch_pos_y);
     }
 #endif
-    if (ev.type == touch_type && ev.code == touch_code && ev.value >= 0) {
-        //如果有触摸事件发生，手指刚刚触下
-        if (touch_y > (gr_fb_height() - gr_get_height(surface))
-                && touch_y <= gr_fb_height() && touch_x > 0 && in_touch == 0) {
-            vibrate(15);    //按下振动（虚拟键区域）
-        }
-        if (in_touch == 0) {    //当前不在触摸中
-            in_touch = 1;
-            reset_gestures();
-        }
-        //暂不提供长按功能
-    } else if (ev.type == touch_type && ev.code == touch_code && ev.value == lv) {
-        //手指已经离开
+    if (ev.type == touch_type && ev.code == touch_code && (touch_x != old_x || touch_y != old_y)) {
+        old_x = touch_x;
+        old_y = touch_y;
         ev.type = EV_KEY;
         if (touch_y > (gr_fb_height() - gr_get_height(surface))
                 && touch_y <= gr_fb_height() && touch_x > 0) {
             //触摸区域在虚拟按键上
-            vibrate(10);    //抬起振动
+            vibrate(10);    //振动
             if (touch_x < (keywidth + keyoffset)) {
                 //最左的按键，下
                 ev.code = KEY_DOWN;
@@ -600,7 +584,6 @@ static int input_callback(int fd, short revents, void *data)
                 ev.code = KEY_POWER;    //KEY_ENTER
                 reset_gestures();
             }
-        }
         if (slide_right == 1) {
             //右滑操作
             slide_right = 0;
@@ -613,8 +596,8 @@ static int input_callback(int fd, short revents, void *data)
         ev.value = 1;
         in_touch = 0;
         reset_gestures();
-    } else if (ev.type == touch_type && ev.code == touch_pos_x) {
-        old_x = touch_x;
+        }
+    }  else if (ev.type == touch_type && ev.code == touch_pos_x) {
         touch_x = ev.value;
         if (old_x != 0)
             diff_x += touch_x - old_x;
@@ -632,7 +615,6 @@ static int input_callback(int fd, short revents, void *data)
             //reset_gestures();
         }
     } else if (ev.type == touch_type && ev.code == touch_pos_y) {
-        old_y = touch_y;
         touch_y = ev.value;
         if (old_y != 0)
             diff_y += touch_y - old_y;
@@ -648,7 +630,7 @@ static int input_callback(int fd, short revents, void *data)
                 //ev.code = KEY_UP;
                 //ev.type = EV_KEY;
                 //reset_gestures();
-			}
+      }
         } else {
                 //input_buttons();
                 //reset_gestures();
