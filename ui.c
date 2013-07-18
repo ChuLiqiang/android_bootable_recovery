@@ -46,7 +46,7 @@ static int gShowBackButton = 0;
 #undef TOUCH_DEBUG
 
 #define MAX_COLS 96
-#define MAX_ROWS 32
+#define MAX_ROWS 15
 
 #define MENU_MAX_COLS 64
 #define MENU_MAX_ROWS 250
@@ -705,7 +705,7 @@ void ui_init(void)
     gr_surface surface = gVirtualKeys;
 #endif
     text_col = text_row = 0;
-    text_rows = gr_fb_height() / CHAR_HEIGHT;
+    text_rows = gr_fb_height() / (CHAR_HEIGHT * 2);
     max_menu_rows = text_rows - MIN_LOG_ROWS;
 #ifdef BOARD_TOUCH_RECOVERY
     max_menu_rows = get_max_menu_rows(max_menu_rows);
@@ -714,8 +714,10 @@ void ui_init(void)
         max_menu_rows = MENU_MAX_ROWS;
     if (text_rows > MAX_ROWS) text_rows = MAX_ROWS;
 #ifdef USE_VIRTUAL_KEY
-    text_rows = text_rows - (gr_get_height(surface) / CHAR_HEIGHT) -1;
+    text_rows = text_rows - (gr_get_height(surface) / (CHAR_HEIGHT*2)) -1;
 #endif
+   
+
     text_top = 1;
 
     text_cols = gr_fb_width() / CHAR_WIDTH * 2;
